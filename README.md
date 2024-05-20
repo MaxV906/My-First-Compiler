@@ -16,4 +16,4 @@ Now supprots brackets as well
 
 ```C
 Compile("path/to/file");
-'''
+```
