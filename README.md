@@ -11,3 +11,9 @@ For now it only does **three** mathematical operations:
 * Multiplication (*)
 
 Now supprots brackets as well
+
+## Compile from a file
+
+```C
+Compile("path/to/file");
+'''
