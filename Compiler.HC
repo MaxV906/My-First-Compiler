@@ -205,10 +205,10 @@ Token *Parse(Token *head) {
 
     if (curr->type == TOKEN_UNKNOWN) {
 
-      "Syntax error: Unknown token: %s", curr->txt;
+      "Syntax error: Unknown token: %s\n", curr->txt;
       GetChar;
       Exit;
-
+
 
     }
 
@@ -227,21 +227,27 @@ Token *Parse(Token *head) {
       Exit;
 
     }
+    
+    if (curr->type == TOKEN_NUM) {
 
-    if (curr->next == TOKEN_NULL) {
+      if (curr->value <0) curr->value = Str2I64(curr->txt);
+      new_head = curr;
 
-       "Syntax error\n";
-       GetChar;
-       Exit;
+    }
+    
+
+    if (curr->type == TOKEN_BR && !StrCmp(curr->txt ,"(")) {
+
+      curr = Parse(curr->next);
+      new_head = curr;
 
     }
 
     if (curr->type == TOKEN_OP) {
 
-     if (prev->value < 0) prev->value = Str2I64(prev->txt);
+     if (curr->next->type == TOKEN_BR) curr->next = Parse(curr->next->next);
 
-     if (curr->next->value < 0
-) curr->next->value = Str2I64(curr->next->txt);
+     if (curr->next->value < 0) curr->next->value = Str2I64(curr->next->txt);
 
      if (!StrCmp(curr->txt, "*")) curr->value = Mul(prev->value, curr->next->value);
      if (!StrCmp(curr->txt, "+")) curr->value = Add(prev->value, curr->next->value);
@@ -275,12 +281,18 @@ Token *Parse(Token *head) {
 
     }
 
+    if (curr->type == TOKEN_BR && !StrCmp(curr->txt, ")")) {
+
+      new_head->next = curr->next;
+      break;
+
+    }
     
   }
 
   TokenFree(free_list);
 
-  new_head->next = NULL;
+  if (curr->type != TOKEN_BR) new_head->next = NULL;
 
   return new_head;
 
