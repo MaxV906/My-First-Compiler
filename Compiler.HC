@@ -61,7 +61,7 @@ class Lexer {
 I64 IsNum(U8 char) return (char >= '0' && char <= '9');
 I64 IsOp(U8 char) return (char == '+' || char == '-' || char == '*');
 I64 IsBr(U8 char) return (char == '(' || char == ')');
-I64 IsSpace(U8 char) return char == ' ';
+I64 IsSpace(U8 char) return (char == ' ' || char == 5);
 
 U8 *ReAlloc(U8 *old, I64 new_size) {
 
@@ -103,7 +103,7 @@ Token *LexerNext(Lexer *l) {
 
     "Please input something...\n";
     GetChar;
-    Exit;
+    return NULL;
 
   }
 
@@ -165,6 +165,8 @@ Token *GetHead(Lexer *l) {
 
     new = LexerNext(l);
 
+    if (!new) return new;
+
     if (new->type == TOKEN_NULL) break;
 
     if (head == NULL) {
@@ -199,16 +201,16 @@ Token *Parse(Token *head) {
   Token *curr = head;
   Token *prev = NULL;
   Token *free_list = NULL;
-  Token *new_head;
+  Token *new_head = NULL;
 
   while (curr != NULL) {
 
     if (curr->type == TOKEN_UNKNOWN) {
 
-      "Syntax error: Unknown token: %s\n", curr->txt;
+      "Syntax error: Unknown token: %d\n", curr->txt[0];
       GetChar;
-      Exit;
-
+      return NULL;
+
 
     }
 
@@ -216,7 +218,7 @@ Token *Parse(Token *head) {
 
       "Syntax error: No operation between numbers\n";
       GetChar;
-      Exit;
+      return NULL;
 
     }
 
@@ -224,7 +226,7 @@ Token *Parse(Token *head) {
 
       "Syntax error: Not enough numbers\n";
       GetChar;
-      Exit;
+      return NULL;
 
     }
     
@@ -292,31 +294,41 @@ Token *Parse(Token *head) {
 
   TokenFree(free_list);
 
-  if (curr->type != TOKEN_BR) new_head->next = NULL;
+  if (curr->type != TOKEN_BR) new_head->next = NULL;
 
   return new_head;
 
 }
 
-U0 Main() {
+U0 Compile(U8 *filename=NULL) {
 
-  U8 *user_input;
   Lexer *l;
   Token *head;
 
-  while (GetKey != 27) {
+  U8 *buff;
 
-     user_input = GetStr;
-     l = LexerInit(&user_input);
-     head = GetHead(l);
+  if (filename) {
 
-     head = Parse(head);
+    CFile *f = FOpen(filename, "r");
 
-     "Output: %d\n\n", head->value;
-     TokenFree(head);
+    FBlkRead(f, buff);
+        
+    FClose(f);
+
+  } else{
+
+    buff = GetStr;
 
   }
 
-}
+  l = LexerInit(&buff);
 
-Main;
+  head = GetHead(l);
+
+  head = Parse(head);
+
+  if (head) "Output: %d\n\n", head->value;
+
+  TokenFree(head);
+
+}
