@@ -10,7 +10,12 @@ For now it only does **three** mathematical operations:
 * Substraction (-)
 * Multiplication (*)
 
-Now supprots brackets as well
+Now it does **logical** operations as well!
+
+* or
+* xor
+* and
+* not (!)
 
 ## Compile from a file
 
