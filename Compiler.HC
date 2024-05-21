@@ -34,11 +34,64 @@ asm {
 
 	RET1 16
 
+  _OR::
+
+	MOV RAX, 8[RSP]
+	MOV RDX, 16[RSP]
+
+	OR RAX, RDX
+
+	RET1 16
+
+  _XOR::
+
+	MOV RAX, 8[RSP]
+	MOV RDX, 16[RSP]
+
+	XOR RAX, RDX
+
+	RET1 16
+
+  _AND::
+
+	MOV RAX, 8[RSP]
+	MOV RDX, 16[RSP]
+
+	OR RAX, RDX
+
+	RET1 16
+
+  _NOT::
+
+	MOV RDX, 8[RSP]
+	XOR RAX, RAX
+	TEST RDX, RDX
+
+	SETE AL
+
+
+	RET1 8
+
+  _TO_BOOL::
+
+	MOV RDX, 9[RSP]
+	XOR RAX, RAX
+	TEST RDX, RDX
+
+	SETNE AL
+
+	RET1 8
+
 }
 
 _extern _ADD I64 Add(I64 a, I64 b);
 _extern _SUB I64 Sub(I64 a, I64 b);
 _extern _MUL I64 Mul(I64 a, I64 b);
+_extern _OR I64 Or(I64 a, I64 b);
+_extern _XOR I64 XOr(I64 a, I64 b);
+_extern _AND I64 And(I64 a, I64 b);
+_extern _NOT I64 Not(I64 a);
+_extern _TO_BOOL I64 Boolean(I64 a);
 
 class Token {
 
@@ -58,10 +111,12 @@ class Lexer {
 
 };
 
-I64 IsNum(U8 char) return (char >= '0' && char <= '9');
-I64 IsOp(U8 char) return (char == '+' || char == '-' || char == '*');
-I64 IsBr(U8 char) return (char == '(' || char == ')');
-I64 IsSpace(U8 char) return (char == ' ' || char == 5);
+Bool IsNum(U8 char) return (char >= '0' && char <= '9');
+Bool IsOp(U8 char) return (char == '+' || char == '-' || char == '*' || char == '!');
+Bool IsBr(U8 char) return (char == '(' || char == ')');
+Bool IsSpace(U8 char) return (char == ' ' || char == 5);
+Bool IsAlpha(U8 char) return (char >= 65 && char <= 122);
+Bool IsLogicOp(U8 *str) return (!StrCmp(str, "or") || !StrCmp(str, "xor") || !StrCmp(str, "xor"));
 
 U8 *ReAlloc(U8 *old, I64 new_size) {
 
@@ -101,7 +156,7 @@ Token *LexerNext(Lexer *l) {
 
   if (!l->content_len) {
 
-    "Please input something...\n";
+    "Error:No Input\n";
     GetChar;
     return NULL;
 
@@ -124,7 +179,7 @@ Token *LexerNext(Lexer *l) {
     if (t->type == TOKEN_NULL) {
 
       if (IsNum(l->content[l->cursor])) t->type = TOKEN_NUM;
-      else if (IsOp(l->content[l->cursor])) t->type = TOKEN_OP;
+      else if (IsOp(l->content[l->cursor]) || IsAlpha(l->content[l->cursor])) t->type = TOKEN_OP;
       else if (IsBr(l->content[l->cursor])) t->type = TOKEN_BR;
       else t->type = TOKEN_UNKNOWN;
 
@@ -134,9 +189,9 @@ Token *LexerNext(Lexer *l) {
     t->txt_len++;
 
     l->cursor++;
-    
-    if (t->type != TOKEN_NUM) break;
-    if (IsNum(l->content[l->cursor]) == FALSE) break;
+
+
+    if ((t->type != TOKEN_NUM || !IsNum(l->content[l->cursor])) && (t->type != TOKEN_OP || !IsAlpha(l->content[l->cursor]))) break;  
 
     t->txt = ReAlloc(t->txt, sizeof(U8) * (t->txt_len + 1));
 
@@ -254,6 +309,10 @@ Token *Parse(Token *head) {
      if (!StrCmp(curr->txt, "*")) curr->value = Mul(prev->value, curr->next->value);
      if (!StrCmp(curr->txt, "+")) curr->value = Add(prev->value, curr->next->value);
      if (!StrCmp(curr->txt, "-")) curr->value = Sub(prev->value, curr->next->value);
+     if (!StrCmp(curr->txt, "!")) curr->value = Not(Boolean(curr->next->value));
+     if (!StrCmp(curr->txt, "or")) curr->value = Or(Boolean(prev->value), Boolean(curr->next->value));
+     if (!StrCmp(curr->txt, "xor")) curr->value = XOr(Boolean(prev->value), Boolean(curr->next->value));
+     if (!StrCmp(curr->txt, "and")) curr->value = And(Boolean(prev->value), Boolean(curr->next->value));
 
       curr->type = TOKEN_NUM;
 
@@ -294,7 +353,7 @@ Token *Parse(Token *head) {
 
   TokenFree(free_list);
 
-  if (curr->type != TOKEN_BR) new_head->next = NULL;
+  if (curr->type != TOKEN_BR) new_head->next = NULL;
 
   return new_head;
 
